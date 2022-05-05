@@ -24,6 +24,7 @@ import (
 type IABProduct interface {
 	VerifyProduct(context.Context, string, string, string) (*androidpublisher.ProductPurchase, error)
 	AcknowledgeProduct(context.Context, string, string, string, string) error
+	GetVoidedPurchase(ctx context.Context, packageName string, startTime int64, endTime int64, maxResults int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error)
 }
 
 // The IABSubscription type is an interface  for subscription service
@@ -133,6 +134,31 @@ func (c *Client) AcknowledgeProduct(ctx context.Context, packageName, productID,
 	err := ps.Acknowledge(packageName, productID, token, acknowledgeRequest).Context(ctx).Do()
 
 	return err
+}
+
+func (c *Client) GetVoidedPurchase(ctx context.Context, packageName string, startTime int64, endTime int64, maxResults int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
+	req := c.service.Purchases.Voidedpurchases.List(packageName).StartTime(startTime)
+	if endTime > 0 {
+		req.EndTime(endTime)
+	}
+	if paginationToken != "" {
+		req.Token(paginationToken)
+	}
+	if maxResults > 0 && maxResults == 1000 {
+		req.MaxResults(1000)
+	} else {
+		req.MaxResults(maxResults)
+	}
+	resp, err := req.Context(ctx).Do()
+	if err != nil {
+		return nil, "", err
+	}
+
+	if resp.TokenPagination != nil {
+		nextPageToken = resp.TokenPagination.NextPageToken
+	}
+	return resp.VoidedPurchases, nextPageToken, nil
+
 }
 
 // CancelSubscription cancels a user's subscription purchase.
