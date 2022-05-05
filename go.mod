@@ -1,4 +1,4 @@
-module github.com/awa/go-iap
+module github.com/xiongdi9456/go-iap
 
 go 1.15
 

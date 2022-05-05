@@ -137,16 +137,17 @@ func (c *Client) AcknowledgeProduct(ctx context.Context, packageName, productID,
 }
 
 func (c *Client) GetVoidedPurchase(ctx context.Context, packageName string, startTime int64, endTime int64, maxResults int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
-	req := c.service.Purchases.Voidedpurchases.List(packageName).StartTime(startTime)
+	req := c.service.Purchases.Voidedpurchases.List(packageName)
+	if startTime > 0 {
+		req.StartTime(startTime)
+	}
 	if endTime > 0 {
 		req.EndTime(endTime)
 	}
 	if paginationToken != "" {
 		req.Token(paginationToken)
 	}
-	if maxResults > 0 && maxResults == 1000 {
-		req.MaxResults(1000)
-	} else {
+	if maxResults > 0 {
 		req.MaxResults(maxResults)
 	}
 	resp, err := req.Context(ctx).Do()
