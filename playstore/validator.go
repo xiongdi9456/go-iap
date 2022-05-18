@@ -24,7 +24,7 @@ import (
 type IABProduct interface {
 	VerifyProduct(context.Context, string, string, string) (*androidpublisher.ProductPurchase, error)
 	AcknowledgeProduct(context.Context, string, string, string, string) error
-	GetVoidedPurchase(ctx context.Context, packageName string, startTime int64, endTime int64, maxResults int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error)
+	GetVoidedPurchase(ctx context.Context, packageName string, startTimeInMilliseconds int64, endTimeInMilliseconds int64, maxResults int64, voidedType int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error)
 }
 
 // The IABSubscription type is an interface  for subscription service
@@ -136,20 +136,35 @@ func (c *Client) AcknowledgeProduct(ctx context.Context, packageName, productID,
 	return err
 }
 
-func (c *Client) GetVoidedPurchase(ctx context.Context, packageName string, startTime int64, endTime int64, maxResults int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
-	req := c.service.Purchases.Voidedpurchases.List(packageName)
-	if startTime > 0 {
-		req.StartTime(startTime)
+// GetVoidedPurchase https://developers.google.com/android-publisher/voided-purchases
+func (c *Client) GetVoidedPurchase(ctx context.Context, packageName string, startTimeInMilliseconds int64, endTimeInMilliseconds int64, maxResults int64, voidedType int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
+
+	ps := androidpublisher.NewPurchasesVoidedpurchasesService(c.service)
+	req := ps.List(packageName)
+	if startTimeInMilliseconds > 0 {
+		//By default, startTime is set to 30 days ago
+		req.StartTime(startTimeInMilliseconds)
 	}
-	if endTime > 0 {
-		req.EndTime(endTime)
+	if endTimeInMilliseconds > 0 {
+		//By default, endTime is set to the current time.
+		req.EndTime(endTimeInMilliseconds)
 	}
 	if paginationToken != "" {
 		req.Token(paginationToken)
 	}
 	if maxResults > 0 {
+		//By default, this value is 1000.
+		//Note that the maximum value for this parameter is also 1000.
 		req.MaxResults(maxResults)
 	}
+
+	if voidedType > 0 {
+		//0: only voided in-app purchases will be returned.
+		//1: both voided in-app purchases and voided subscription purchases will be returned.
+		//Default value is 0.
+		req.Type(1)
+	}
+
 	resp, err := req.Context(ctx).Do()
 	if err != nil {
 		return nil, "", err
