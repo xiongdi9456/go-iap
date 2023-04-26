@@ -24,6 +24,7 @@ import (
 type IABProduct interface {
 	VerifyProduct(context.Context, string, string, string) (*androidpublisher.ProductPurchase, error)
 	AcknowledgeProduct(context.Context, string, string, string, string) error
+	ConsumeProduct(context.Context, string, string, string, string) error
 	GetVoidedPurchase(ctx context.Context, packageName string, startTimeInMilliseconds int64, endTimeInMilliseconds int64, maxResults int64, voidedType int64, paginationToken string) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error)
 }
 
@@ -132,7 +133,12 @@ func (c *Client) AcknowledgeProduct(ctx context.Context, packageName, productID,
 	ps := androidpublisher.NewPurchasesProductsService(c.service)
 	acknowledgeRequest := &androidpublisher.ProductPurchasesAcknowledgeRequest{DeveloperPayload: developerPayload}
 	err := ps.Acknowledge(packageName, productID, token, acknowledgeRequest).Context(ctx).Do()
+	return err
+}
 
+func (c *Client) ConsumeProduct(ctx context.Context, packageName, productID, token, developerPayload string) error {
+	ps := androidpublisher.NewPurchasesProductsService(c.service)
+	err := ps.Consume(packageName, productID, token).Context(ctx).Do()
 	return err
 }
 
